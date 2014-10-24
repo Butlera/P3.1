@@ -17,8 +17,8 @@ import java.io.IOException;
 
 public class GUI extends JFrame implements ActionListener, ChangeListener{
 	
-	private JFrame frame;
-	private JButton resetButton, importImageButton;
+	private JFrame frame, getStartedFrame, aboutMenuFrame;
+	private JButton resetButton, importImageButton, exitGetStartedFrame = null, exitAboutMenuFrame = null;
 	private JFileChooser fileChooser;
 	private JMenuBar menuBar;
 	private JMenu fileMenu, helpMenu;
@@ -26,17 +26,13 @@ public class GUI extends JFrame implements ActionListener, ChangeListener{
 	private JSlider pixSlider;
 	private File picFile;
 	private BufferedImage buffPic = null;
-	private BufferedImage buffPicCopy = null;
 	private JPanel bottomPanel, centerPanel;
 	private JLabel centerPanLabel;
 	
-	private Desktop desktop;
-	private File pdfAboutFile = new File("/Users/AustinButler/Documents/workspace/P3/AboutFile.pdf");
-	
-	final int PIX_MIN = 0;
-	final int PIX_MAX = 20;
-	final int PIX_INIT = 0;
-	int pixelChoice = 0;
+	final int PIX_MIN = 1;
+	final int PIX_MAX = 10;
+	final int PIX_INIT = 1;
+	int pixelChoice = 1;
 	
 	public GUI() {
 		
@@ -71,14 +67,12 @@ public class GUI extends JFrame implements ActionListener, ChangeListener{
 		
 		//This will build the JSlider.
 		pixSlider = new JSlider(JSlider.HORIZONTAL,PIX_MIN,PIX_MAX,PIX_INIT);
-		pixSlider.setMajorTickSpacing(5);
+		pixSlider.setMajorTickSpacing(1);
 		pixSlider.setMinorTickSpacing(1);
 		pixSlider.setPaintTicks(true);
 		pixSlider.setPaintLabels(true);
 		
 		bottomPanel.add(pixSlider, BorderLayout.CENTER);
-		
-		pixSlider.addChangeListener(this);
 		
 		
 		//This will add the bottomPanel to the frame.
@@ -96,7 +90,9 @@ public class GUI extends JFrame implements ActionListener, ChangeListener{
 		
 		//These will assign letter shortcuts to each of the Menus.
 		fileMenu.setMnemonic(KeyEvent.VK_F);
+		fileMenu.setDisplayedMnemonicIndex(0);
 		helpMenu.setMnemonic(KeyEvent.VK_H);
+		helpMenu.setDisplayedMnemonicIndex(0);
 		
 		//This will populate the menuBar.
 		menuBar.add(fileMenu);
@@ -104,12 +100,15 @@ public class GUI extends JFrame implements ActionListener, ChangeListener{
 
 		//This will populate the file menu.
 		quitMenuItem = new JMenuItem("Quit",KeyEvent.VK_Q);
+		quitMenuItem.setDisplayedMnemonicIndex(0);
 		fileMenu.add(quitMenuItem);
 		quitMenuItem.addActionListener(this);
 		
 		//This will populate the help menu.
 		startedMenuItem = new JMenuItem("Get Started",KeyEvent.VK_E);
+		startedMenuItem.setDisplayedMnemonicIndex(1);
 		aboutMenuItem = new JMenuItem("About", KeyEvent.VK_A);
+		aboutMenuItem.setDisplayedMnemonicIndex(0);
 		helpMenu.add(startedMenuItem);
 		startedMenuItem.addActionListener(this);
 		helpMenu.add(aboutMenuItem);
@@ -120,17 +119,58 @@ public class GUI extends JFrame implements ActionListener, ChangeListener{
 		
 		//This will make the frame visible so users can actually see it.
 		frame.setVisible(true);
+		
+		
+		//This will create the frame for the getStartedFrame menuItem
+		getStartedFrame = new JFrame ("Getting Started");
+		getStartedFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		getStartedFrame.setLayout(new BorderLayout());
+		JTextArea getStartedFrameTextArea = new JTextArea("Welcome to Pixelator! Please push Import, " 
+				+ "then select the photo you would like me to pixelate! " 
+				+ "Use the slider to adjust the amount of pixelation!", 3, 40);
+		
+		getStartedFrameTextArea.setLineWrap(true);
+		getStartedFrameTextArea.setWrapStyleWord(true);
+		getStartedFrame.add(getStartedFrameTextArea, BorderLayout.NORTH);
+		exitGetStartedFrame = new JButton ("Return to the pixelator");
+		exitGetStartedFrame.addActionListener(this);
+		getStartedFrame.setLocation(450,400);
+		getStartedFrame.add(exitGetStartedFrame, BorderLayout.SOUTH);
+		getStartedFrame.pack();
+		
+		//This will create the frame for the about page of the application
+		aboutMenuFrame = new JFrame ("About");
+		aboutMenuFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		aboutMenuFrame.setLayout(new BorderLayout());
+		JTextArea aboutFrameTextArea = new JTextArea("Pixelator - A basic application for pixelating imported pictures. V1.1", 3, 40);
+		
+		aboutFrameTextArea.setLineWrap(true);
+		aboutFrameTextArea.setWrapStyleWord(true);
+		aboutMenuFrame.add(aboutFrameTextArea, BorderLayout.NORTH);
+		exitAboutMenuFrame = new JButton ("Return to the pixelator");
+		exitAboutMenuFrame.addActionListener(this);
+		aboutMenuFrame.setLocation(450,400);
+		aboutMenuFrame.add(exitAboutMenuFrame, BorderLayout.SOUTH);
+		aboutMenuFrame.pack();
 	}
 
 	//This method is where the action is actually performed.
 	public void actionPerformed(ActionEvent e) {
+
 		if (e.getSource() == resetButton){
-			pixelChoice = 0;
-			pixSlider.setValue(0);
-//			System.out.println("ResetButton");
+			pixSlider.setValue(1);
+			centerPanLabel.setIcon(new ImageIcon(pixelate(buffPic, 1)));
+			if(buffPic.getWidth()>200)
+				frame.setSize(buffPic.getWidth(), buffPic.getHeight()+120);
+			centerPanel.add(centerPanLabel);
+			frame.getContentPane().add(centerPanel);
 		}
 		
 		if (e.getSource() == importImageButton){
+			
+			pixSlider.setValue(1);
+			pixelChoice = 1;
+			pixSlider.addChangeListener(this);
 			
 			fileChooser = new JFileChooser();
 			FileNameExtensionFilter filter = new FileNameExtensionFilter("JPG & GIF Images", "jpg", "gif");
@@ -138,99 +178,98 @@ public class GUI extends JFrame implements ActionListener, ChangeListener{
 			int returnVal = fileChooser.showOpenDialog(null);
 			if(returnVal == JFileChooser.APPROVE_OPTION){
 				picFile = fileChooser.getSelectedFile();
-//				System.out.println("You have chose to pixelate the picture: " + fileChooser.getSelectedFile().getName());
 			}
 			
 			//This will turn the image file into a buffered image for manipulation.
-			try {
-				buffPic = ImageIO.read(picFile);
-				buffPicCopy = buffPic;
+			if(picFile != null){
+				try {
+					buffPic = ImageIO.read(picFile);
+					centerPanLabel.setText(null);
 				
-			} catch (IOException e1) {
-				System.out.println("There was an error importing your photo.");
-				e1.printStackTrace();
+				} catch (IOException e1) {
+					System.out.println("There was an error importing your photo.");
+					e1.printStackTrace();
+				}
+				
+				centerPanLabel.setIcon(new ImageIcon(buffPic));
+				
+				if(buffPic.getWidth() > 200)
+				frame.setSize(buffPic.getWidth(), buffPic.getHeight()+120);
+				
+				centerPanel.add(centerPanLabel);
+				frame.getContentPane().add(centerPanel);
 			}
 			
-			centerPanLabel.setIcon(new ImageIcon(buffPicCopy));
-			frame.setSize(buffPic.getWidth(), buffPic.getHeight()+120);
-			centerPanel.add(centerPanLabel);
-			frame.getContentPane().add(centerPanel);
 		}
 		
 		if (e.getSource() == startedMenuItem){
-//			System.out.println("StartMenu");
+			getStartedFrame.setVisible(true);	
+		}
+		
+		if (e.getSource() == exitGetStartedFrame){
+			getStartedFrame.setVisible(false);
 		}
 		
 		if (e.getSource() == aboutMenuItem){
-			try {
-				desktop.open(new File("/Users/AustinButler/Documents/workspace/P3/AboutFile.pdf"));
-			} catch (IOException e1) {
-				System.out.println("Missing Files. printStackTrace: ");
-				e1.printStackTrace();
-			} catch(NullPointerException e1){
-				System.out.println("I caught you.");
-				e1.printStackTrace();
-			}
-			
-//			System.out.println("aboutMenu");
+			aboutMenuFrame.setVisible(true);
 		}
 		
+		if(e.getSource() == exitAboutMenuFrame){
+			aboutMenuFrame.setVisible(false);
+		}
 		if (e.getSource() == quitMenuItem){
 			System.exit(0);
 		}
 		
-		
-		
 	}
 	
-	
+	//This method checks for a change in state for the JSlider.
 	public void stateChanged(ChangeEvent e) {
 		JSlider source = (JSlider)e.getSource();
-		if(!source.getValueIsAdjusting())
+		if(source.getValueIsAdjusting())
 		{
 			int pixels = (int)source.getValue();
 			pixelChoice = pixels;
-			System.out.println("You have selected "+ pixelChoice);
-			pixelate(buffPicCopy, pixelChoice);
-			centerPanLabel.setIcon(new ImageIcon(buffPicCopy));
-			frame.setSize(buffPic.getWidth(), buffPic.getHeight()+120);
+			centerPanLabel.setIcon(new ImageIcon(pixelate(buffPic, pixelChoice)));
+			if(buffPic.getWidth()>200)
+				frame.setSize(buffPic.getWidth(), buffPic.getHeight()+120);
 			centerPanel.add(centerPanLabel);
 			frame.getContentPane().add(centerPanel);
 
 		}
-	}
-
-	public int getPixelSize(){
-		return pixelChoice;
 	}
 
 	//This method will actually do the pixelation.
 	private BufferedImage pixelate (BufferedImage buffPic, int pixelChoice){
 		
-		BufferedImage pixelImage = buffPic;
-
+		BufferedImage newImg = null;
+		try {
+			newImg = ImageIO.read(picFile);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		
-		//This for loop will get the average color in the desired pixel size.
-        for(int row =0; row<buffPic.getHeight();row+=pixelChoice){
-            for(int col=0;col< buffPic.getWidth();col+=pixelChoice){
-        		int average=0;
-            	average += buffPic.getRGB(col, row);
-            	int count = 1;
-            	count++;
-            	
-            	if(count == pixelChoice){
-            		average /= 2;
-	            	for(int row2 = row; (row2 < row +pixelChoice)&& (row2 < pixelImage.getHeight()); row2++){
-	            		for(int col2 = col; (col2 < col + pixelChoice)&&(col2 < pixelImage.getWidth()); col2++){
-	            			pixelImage.setRGB(row2,col2,average);
-	            		}
-	            	}
-            	}
-            	
-            }
-        }
+		Raster orig = newImg.getData();
 		
-		return pixelImage;
+		WritableRaster pixelImage = orig.createCompatibleWritableRaster();
+		
+		for(int y = 0; y < orig.getHeight(); y += pixelChoice){
+			for(int x = 0; x < orig.getWidth(); x += pixelChoice){
+				
+				double[] pixel = new double[3];
+				pixel = orig.getPixel(x, y, pixel);
+				
+				for(int i = y; (i < y + pixelChoice) && (i < pixelImage.getHeight()); i++){
+					for(int j = x; (j < x + pixelChoice) && (j < pixelImage.getWidth()); j++){
+					pixelImage.setPixel(j, i, pixel);
+					}
+				}
+			}
+		}
+		
+		newImg.setData(pixelImage);
+		
+		return newImg;
 	}
 }
 
